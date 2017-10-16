@@ -355,7 +355,8 @@
                                l_stop,   stop_label)
 
       use icepack_zbgc_shared, only: merge_bgc_fluxes_skl
-      use icepack_intfc_tracers, only: nt_bgc_N
+      use icepack_intfc_tracers, only: nt_bgc_N      
+      use icepack_constants, only: c0
  
       integer (kind=int_kind), intent(in) :: &
          nilyr,              & ! number of ice layers
@@ -413,6 +414,7 @@
       character(len=char_len_long) :: &
          warning ! warning message
 
+      flux_bion(:) = c0
       call skl_biogeochemistry       (dt,        nilyr,     &
                                       n_zaero,   n_doc,     &
                                       n_dic,     n_don,     &
@@ -582,8 +584,10 @@
             write(warning,*)'initial sk_bgc < 0, nn,nbtrcr,cinit(nn)', &
                  nn,nbtrcr,cinit(nn)
             call add_warning(warning)
-            l_stop = .true.
-            stop_label = 'cinit < c0'
+            trcrn(bio_index(nn)) = c0
+            cinit(nn) = c0
+          !  l_stop = .true.
+          !  stop_label = 'cinit < c0'
          endif  
       enddo     ! nbtrcr
 
@@ -1430,7 +1434,8 @@
                             Nerror,       conserve_N)      
 
       use icepack_constants, only: p1, p5, c0, c1, secday, puny
-      use icepack_intfc_shared, only: max_algae, max_DON, max_DOC, R_C2N, R_chl2N, &
+      use icepack_intfc_shared, only: max_algae, max_don, max_doc, &
+           max_fe, R_C2N, R_chl2N, max_dic,  &
       	  		     	   T_max, fsal      , fr_resp          , & 
                                    op_dep_min       , fr_graze_s       , & 
                                    fr_graze_e       , fr_mort2min      , & 
@@ -1506,24 +1511,24 @@
 
       integer (kind=int_kind) :: k, n
 
-      real (kind=dbl_kind), dimension(n_algae) :: &
+      real (kind=dbl_kind), dimension(max_algae) :: &
          Nin        , &     ! algal nitrogen concentration on volume (mmol/m^3) 
          Cin        , &     ! algal carbon concentration on volume (mmol/m^3)
          chlin              ! algal chlorophyll concentration on volume (mg/m^3)
 
-      real (kind=dbl_kind), dimension(n_doc) :: &
+      real (kind=dbl_kind), dimension(max_doc) :: &
          Docin              ! dissolved organic carbon concentration on volume (mmolC/m^3) 
 
-      real (kind=dbl_kind), dimension(n_dic) :: &
+      real (kind=dbl_kind), dimension(max_dic) :: &
          Dicin              ! dissolved inorganic carbon concentration on volume (mmolC/m^3) 
 
-      real (kind=dbl_kind), dimension(n_don) :: &  !proteins
+      real (kind=dbl_kind), dimension(max_don) :: &  !proteins
          Donin              ! dissolved organic nitrogen concentration on volume (mmolN/m^3) 
 
-      real (kind=dbl_kind), dimension(n_fed) :: &  !iron
+      real (kind=dbl_kind), dimension(max_fe) :: &  !iron
          Fedin              ! dissolved iron concentration on volume (umol/m^3) 
 
-      real (kind=dbl_kind), dimension(n_fep) :: &  !iron
+      real (kind=dbl_kind), dimension(max_fe) :: &  !iron
          Fepin              ! algal nitrogen concentration on volume (umol/m^3) 
 
       real (kind=dbl_kind) :: &
@@ -1537,7 +1542,7 @@
          op_dep     , &     ! bottom layer attenuation exponent (optical depth)
          Iavg_loc           ! bottom layer attenuated Fswthru (W/m^2)
 
-      real (kind=dbl_kind), dimension(n_algae) :: &
+      real (kind=dbl_kind), dimension(max_algae) :: &
          L_lim    , &  ! overall light limitation 
          Nit_lim  , &  ! overall nitrate limitation
          Am_lim   , &  ! overall ammonium limitation
@@ -1579,32 +1584,32 @@
          fr_mort_p         ! fraction of N mortality that becomes protein 
                            ! < (1-fr_mort2min)
 
-      real (kind=dbl_kind), dimension(n_algae) :: &
+      real (kind=dbl_kind), dimension(max_algae) :: &
          resp     , &  ! respiration (mmol/m^3/s)
          graze    , &  ! grazing (mmol/m^3/s)
          mort          ! sum of mortality and excretion (mmol/m^3/s)
 
 !  source terms underscore s, removal underscore r
 
-      real (kind=dbl_kind), dimension(n_algae) :: &
+      real (kind=dbl_kind), dimension(max_algae) :: &
          N_s       , &  ! net algal nitrogen sources (mmol/m^3)
          N_r            ! net algal nitrogen removal (mmol/m^3)
 
-      real (kind=dbl_kind), dimension(n_doc) :: &
+      real (kind=dbl_kind), dimension(max_doc) :: &
          DOC_r      , &  ! net DOC removal (mmol/m^3)
          DOC_s           ! net DOC sources (mmol/m^3)
 
-      real (kind=dbl_kind), dimension(n_don) :: &
+      real (kind=dbl_kind), dimension(max_don) :: &
          DON_r      , &  ! net DON removal (mmol/m^3)
          DON_s           ! net DON sources (mmol/m^3)
 
-      real (kind=dbl_kind), dimension(n_fed) :: &
+      real (kind=dbl_kind), dimension(max_fe) :: &
          Fed_r_l     , &  ! removal due to loss of binding saccharids (nM)
          Fed_r       , &  ! net Fed removal (nM)
          Fed_s       , &  ! net Fed sources (nM)
          rFed             ! ratio of dissolved Fe to tot Fed
 
-      real (kind=dbl_kind), dimension(n_fep) :: &
+      real (kind=dbl_kind), dimension(max_fe) :: &
          Fep_r       , &  ! net Fep removal (nM)
          Fep_s       , &  ! net Fep sources (nM)
          rFep             ! ratio of particulate Fe to tot Fep

@@ -160,7 +160,8 @@
          pflux_NO, pflux_Am,  phum_ac, &
          pflux_snow_NO, pflux_snow_Am,  &
          pflux_atm_NO, pflux_atm_Am,  pgrow_net, &
-         pflux_hum
+         pflux_hum, pflux_snow_Sil, pflux_Sil, &
+         pflux_atm_Sil
 
       real (kind=dbl_kind), dimension(npnt,max_algae) :: &
          pN_ac, pN_tot, pN_sk, pflux_N
@@ -176,7 +177,7 @@
 
       ! vertical  fields of category 1 at diagnostic points for bgc layer model
       real (kind=dbl_kind), dimension(npnt,2) :: &
-         pNOs, pAms, pPONs, phums
+         pNOs, pAms, pPONs, phums, pSils
       real (kind=dbl_kind), dimension(npnt,2,max_algae) :: &
          pNs
       real (kind=dbl_kind), dimension(npnt,2,max_doc) :: &
@@ -188,7 +189,7 @@
       real (kind=dbl_kind), dimension(npnt,2,max_aero) :: &
          pzaeros
       real (kind=dbl_kind), dimension(npnt,nblyr+1) :: &
-         pNO, pAm, pPON, pzfswin, pZoo, phum
+         pNO, pAm, pPON, pzfswin, pZoo, phum, pSil
       real (kind=dbl_kind), dimension(npnt,nblyr+1,max_algae) :: &
          pN
       real (kind=dbl_kind), dimension(npnt,nblyr+1,max_aero) :: &
@@ -339,6 +340,9 @@
                   pflux_Am(n) = c0
                   pflux_hum(n) = c0
                   pflux_atm_Am(n) = c0
+                  pflux_Sil(n) = c0
+                  pflux_atm_Sil(n) = c0
+                  pflux_snow_Sil(n) = c0
                   pflux_snow_Am(n) = c0
                   pflux_N(n,:) = c0
                   pflux_NO(n) = c0
@@ -358,6 +362,12 @@
                     pflux_atm_Am(n)   = fbio_atmice(i,nlt_bgc_Am)*mps_to_cmpdy/c100 
                     pflux_snow_Am(n)  = fbio_snoice(i,nlt_bgc_Am)*mps_to_cmpdy/c100
                   endif 
+                  if (tr_bgc_Sil) then
+                     pflux_Sil(n)       = flux_bio(i,j,nlt_bgc_Sil,iblk)*mps_to_cmpdy/c100
+                     pflux_atm_Sil(n)   = fbio_atmice(i,j,nlt_bgc_Sil,iblk)*mps_to_cmpdy/c100
+                     pflux_snow_Sil(n)  = fbio_snoice(i,j,nlt_bgc_Sil,iblk)*mps_to_cmpdy/c100
+                  endif
+ 
                   if (tr_bgc_hum) then
                     pflux_hum(n)       = flux_bio(i,nlt_bgc_hum)*mps_to_cmpdy/c100 
                   endif
@@ -395,8 +405,10 @@
                    pPON(n,k) = c0
                    phum(n,k) = c0
                    pNO(n,k) = c0
+                   pSil(n,k) = c0
                    if (tr_bgc_Nit) pNO(n,k) =  trcr(i,nt_bgc_Nit+k-1)                   
                    if (tr_bgc_Am) pAm(n,k) =  trcr(i,nt_bgc_Am+k-1)     
+                   if (tr_bgc_Sil) pSil(n,k) =  trcr(i,nt_bgc_Sil+k-1)     
                    if (tr_bgc_N) then
                      do nn = 1, n_algae
                         pN(n,k,nn)   =  trcr(i,nt_bgc_N(nn)+k-1)
@@ -445,8 +457,10 @@
                    pPONs(n,k) = c0
                    phums(n,k) = c0
                    pNOs(n,k) = c0
+                   pSils(n,k) = c0
                    if (tr_bgc_Nit) pNOs(n,k)  = trcr(i,nt_bgc_Nit+nblyr+k)  
                    if (tr_bgc_Am) pAms(n,k) = trcr(i,nt_bgc_Am+nblyr+k)
+                   if (tr_bgc_Sil) pSils(n,k) = trcr(i,nt_bgc_Sil+nblyr+k)
                    if (tr_bgc_N) then
                      do nn = 1, n_algae
                        pNs(n,k,nn) =  trcr(i,nt_bgc_N(nn)+nblyr+k)
@@ -569,6 +583,23 @@
            write(nu_diag,802) ((pAms(n,k),n=1,2), k = 1,2)              
            write(nu_diag,802) ((pAm(n,k),n=1,2), k = 1,nblyr+1)              
            write(nu_diag,*) '       '     
+         endif
+      endif
+      if (tr_bgc_Sil) then
+         write(nu_diag,*) '---------------------------------------------------'
+         write(nu_diag,*) '    silicate conc. (mmol/m^3) or flux (mmol/m^2/d)'
+         write(nu_diag,900) 'Ocean conc       = ',pSil_ac(1),pSil_ac(2)
+         write(nu_diag,900) 'ice-ocean flux   = ',pflux_Sil(1),pflux_Sil(2)
+         if (skl_bgc) then
+            write(nu_diag,900) 'Bulk ice conc.   = ',pSil_sk(1),pSil_sk(2)
+         elseif (z_tracers) then
+            write(nu_diag,900) 'atm-ice flux     = ',pflux_atm_Sil(1),pflux_atm_Sil(2)
+            write(nu_diag,900) 'snow-ice flux    = ',pflux_snow_Sil(1),pflux_snow_Sil(2)
+            write(nu_diag,*) '             snow + ice conc.'
+            write(nu_diag,803) '  silicate(1)','  silicate(2)'
+            write(nu_diag,802) ((pSils(n,k),n=1,2), k = 1,2)
+            write(nu_diag,802) ((pSil(n,k),n=1,2), k = 1,nblyr+1) 
+            write(nu_diag,*) '       '
          endif
       endif
       if (tr_bgc_N) then
