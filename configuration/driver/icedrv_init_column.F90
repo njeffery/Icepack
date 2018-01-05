@@ -1099,6 +1099,11 @@
             write(nu_diag,*) 'WARNING: setting solve_zbgc = F'
             solve_zbgc = .false.
          endif
+         if (skl_bgc) then
+            write(nu_diag,*) 'WARNING: tr_brine = F and skl_bgc = T'
+            write(nu_diag,*) 'WARNING: setting skl_bgc = F'
+            skl_bgc = .false.
+         endif
          if (tr_zaero) then
             write(nu_diag,*) 'WARNING: tr_brine = F and tr_zaero = T'
             write(nu_diag,*) 'WARNING: setting tr_zaero = F'

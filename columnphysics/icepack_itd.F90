@@ -1367,7 +1367,10 @@
                        trcrn(bio_index(it)+nblyr+2)*dvint)/dt
                dflux_bio(it) = dflux_bio(it) + xtmp
             enddo                 ! it
-
+      elseif (skl_bgc) then
+         do it = 1, nbtrcr
+           dflux_bio (it) = dflux_bio(it)
+         enddo
       endif ! z_tracers
 
       ! snow enthalpy tracer

@@ -173,7 +173,7 @@
       !in CICE, the following line:
       !if (tr_brine .or. skl_bgc) call init_hbrine ! brine height tracer
       !is called like this:
-      if (tr_brine .or. skl_bgc) then ! brine height tracer
+      if (tr_brine) then ! brine height tracer
         call init_hbrine
         !if (tr_brine .and. restart_hbrine) call read_restart_hbrine
         if (tr_brine .and. restart) call read_restart_hbrine

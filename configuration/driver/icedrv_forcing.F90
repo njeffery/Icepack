@@ -875,7 +875,7 @@ endif
 
       character(len=*), parameter :: subname='(atm_NICE)'
 
-      filename = trim(data_dir)//'/NICE_2015/NICEL_atm_forcing.txt'
+      filename = trim(data_dir)//'/NICE_2015/NICE_atm_forcing.txt'
 
       write (nu_diag,*) 'Reading ',filename
 

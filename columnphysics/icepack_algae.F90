@@ -547,7 +547,7 @@
          PVc = 1.e-6_dbl_kind           , & ! type 'constant' piston velocity for interface (m/s) 
          PV_scale_growth = p5           , & ! scale factor in Jin code PV during ice growth
          PV_scale_melt = p05            , & ! scale factor in Jin code PV during ice melt
-         growth_max = 1.85e-10_dbl_kind , & ! PVt function reaches maximum here.  (m/s)
+         growth_max = 1.85e-5_dbl_kind , & ! PVt function reaches maximum here.  (m/s)
          Tin_bot = -1.8_dbl_kind        , & ! temperature of the ice bottom (oC)
          MJ1 = 9.667e-9_dbl_kind        , & ! (m/s) coefficients in Jin2008
          MJ2 = 38.8_dbl_kind            , & ! (1) from:4.49e-4_dbl_kind*secday   
@@ -1311,7 +1311,7 @@
                          Zoo(k),                           &
                          Nerror(k),        conserve_N(k))
             if (icepack_warnings_aborted(subname)) return
-                         
+                        
          enddo ! k
       endif    ! solve_zbgc
 
@@ -1975,24 +1975,24 @@
 
       !--------------------------------------------------------------------
       ! Iron sources from remineralization  (follows ammonium but reduced)
-      ! only Fed_s(1)  has remineralized sources
       !--------------------------------------------------------------------
-      
-      Fed_s(1) = Fed_s(1) + Am_s * R_Fe2N(1) * fr_dFe   ! remineralization source
+      do n = 1, n_fed
+         Fed_s(n) = Fed_s(n) + Am_s * R_Fe2N(n) * fr_dFe   ! remineralization source
+      enddo
 
       !--------------------------------------------------------------------
       !  Conversion to dissolved Fe from Particulate requires DOC(1)
       !  Otherwise the only source of dFe is from remineralization
       !--------------------------------------------------------------------
 
-      if (tr_bgc_C .and. DOCin(1) > c0) then
-         
+      if (tr_bgc_C .and. tr_bgc_Fe) then
+        if (DOCin(1) > c0) then 
         if (Fed_tot/DOCin(1) > max_dfe_doc1) then             
           do n = 1,n_fed                                    ! low saccharid:dFe ratio leads to 
              Fed_r_l(n)  = Fedin(n)/t_iron_conv*dt/secday   ! loss of bioavailable Fe to particulate fraction
              Fep_tot_s   = Fep_tot_s + Fed_r_l(n)
-             Fed_r(n)    = rFed(n) * Fed_tot_r + Fed_r_l(n) ! removal includes uptake and coagulation
-          enddo  
+             Fed_r(n)    = Fed_r_l(n)                        ! removal due to particulate scavenging 
+          enddo
           do n = 1,n_fep
              Fep_s(n) = rFep(n)* Fep_tot_s                  ! source from dissolved Fe 
           enddo
@@ -2003,17 +2003,21 @@
           enddo  
           do n = 1,n_fed
              Fed_s(n) = Fed_s(n) + rFed(n)* Fed_tot_s       ! source from particulate Fe
-             Fed_r(n) = rFed(n)* Fed_tot_r                  ! algal uptake
           enddo    
-       endif         
-      endif
+        endif
+        endif !Docin(1) > c0
+      elseif (tr_bgc_Fe) then
+        do n = 1,n_fed
+           Fed_r(n) = Fed_r(n) + rFed(n)*Fed_tot_r          ! scavenging + uptake
+        enddo 
 
       ! source from algal mortality/grazing and fraction of remineralized nitrogen that does 
       ! not become immediately bioavailable
 
-      do n = 1,n_fep
-         Fep_s(n) = Fep_s(n) + rFep(n)* (Am_s * R_Fe2N(1) * (c1-fr_dFe))   
-      enddo ! losses not direct to Fed 
+         do n = 1,n_fep
+            Fep_s(n) = Fep_s(n) + rFep(n)* (Am_s * R_Fe2N(1) * (c1-fr_dFe))   
+         enddo ! losses not direct to Fed 
+      endif
 
       !--------------------------------------------------------------------
       ! Sulfur cycle begins here
@@ -2080,12 +2084,12 @@
               dN = dN + reactb(nlt_bgc_DON(k))
          enddo
        endif 
-       if (tr_bgc_Fe ) then
+       if (tr_bgc_Fe) then
         do k = 1,n_fed
-              reactb(nlt_bgc_Fed(k))= Fed_s (k) - Fed_r (k) 
+              reactb(nlt_bgc_Fed(k))= Fed_s(k) - Fed_r(k) 
         enddo
         do k = 1,n_fep
-              reactb(nlt_bgc_Fep(k))= Fep_s (k) - Fep_r (k) 
+              reactb(nlt_bgc_Fep(k))= Fep_s(k) - Fep_r(k) 
         enddo
        endif 
        if (tr_bgc_DMS) then

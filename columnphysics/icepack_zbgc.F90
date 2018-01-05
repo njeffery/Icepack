@@ -182,6 +182,7 @@
          flux_bio(k) = flux_bio(k) &
                             - vi0_init/dt*ocean_bio(k)*zbgc_init_frac(k)
       enddo
+         
       !-----------------------------------------------------------------
       ! Distribute bgc in new ice volume among all ice categories by 
       ! increasing ice thickness, leaving ice area unchanged.
@@ -986,9 +987,11 @@
          else
             first_ice(n) = .true.
             if (tr_brine) trcrn(nt_fbri,n) = c1
-            do mm = 1,nbtrcr
-               trcrn(nt_zbgc_frac-1+mm,n) = zbgc_frac_init(mm)
-            enddo
+            if (.not. skl_bgc) then
+               do mm = 1,nbtrcr
+                  trcrn(nt_zbgc_frac-1+mm,n) = zbgc_frac_init(mm)
+               enddo
+            end if
             if (n == 1) Rayleigh_criteria = .false.
             if (solve_zsal) trcrn(nt_bgc_S:nt_bgc_S+nblyr-1,n) = c0
          endif

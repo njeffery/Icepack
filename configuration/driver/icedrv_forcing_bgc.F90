@@ -57,8 +57,14 @@
             trim(sil_data_type) == 'ISPOL' .or. &
             trim(nit_data_type) == 'NICE' .or. &
             trim(sil_data_type) == 'NICE') then 
-          
-          filename = trim(data_dir)//'/ISPOL_2004/nutrients_daily_ISPOL_WOA_field3.txt'
+
+          if (trim(nit_data_type) == 'ISPOL' .or. &
+              trim(sil_data_type) == 'ISPOL') then
+             filename = trim(data_dir)//'/ISPOL_2004/nutrients_daily_ISPOL_WOA_field3.txt'
+          else
+             filename = trim(data_dir)//'/NICE_2015/nutrients_daily_ISPOL_WOA_field3.txt'
+          endif
+
           write (nu_diag,*) 'Reading ',filename
 
           ntime = 365 !daily
@@ -136,16 +142,19 @@
 
       if (.not. trim(nit_data_type)=='ISPOL' .AND. &
           .not. trim(sil_data_type)=='ISPOL' .AND. &
-          .not. trim(nit_data_type)=='INICE' .AND. &
+          .not. trim(nit_data_type)=='NICE' .AND. &
           .not. trim(sil_data_type)=='NICE') then
 
 
-      elseif (trim(nit_data_type) == 'ISPOL' .or. trim(sil_data_type) == 'ISPOL') then 
-      
+      elseif (trim(nit_data_type) == 'ISPOL' .or. &
+           trim(sil_data_type) == 'ISPOL' .or. &
+           trim(nit_data_type) == 'NICE' .or. &
+           trim(sil_data_type) == 'NICE') then
+
         dataloc = 2                          ! data located at end of interval
         sec1hr = secday                      ! seconds in day
-        maxrec = 365                         ! 
-        
+        maxrec = 365                         !
+
         ! current record number
         recnum = int(yday)   
         
@@ -243,46 +252,36 @@
     ! Annual average data from Tagliabue, 2012 (top 50 m average
     ! poisson grid filled on gx1v6
     !-------------------------------------------------------------------
-
       if (trim(fe_data_type) == 'clim') then
-       	diag = .true.   ! write diagnostic information 
+         diag = .true.   ! write diagnostic information 
         iron_file = trim(bgc_data_dir)//'/dFe_50m_annual_Tagliabue_gx1.nc'
-
         write (nu_diag,*) ' '
         write (nu_diag,*) 'Dissolved iron ocean concentrations from:'
         write (nu_diag,*) trim(iron_file)
         !cn call ice_open_nc(iron_file,fid)
         open(fid,file=iron_file,form='unformatted')
-
         !cn fieldname='dFe'
         !cn Not sure what this comment means, do we not need an implied do ver nx, max_fe within the read?
         ! Currently only first fed  value is read
         !cn call ice_read_nc(fid,1,fieldname,fed1,diag)
         read(fid,fed1(:,:))
-
         where ( fed1(:,:) > 1.e20) fed1(:,:) = p1  
-
         !cn call ice_close_nc(fid)  
         close(fid)
-
-       	diag = .true.   ! write diagnostic information 
+        diag = .true.   ! write diagnostic information 
         iron_file = trim(bgc_data_dir)//'/pFe_bathy_gx1.nc'
-
         write (nu_diag,*) ' '
         write (nu_diag,*) 'Particulate iron ocean concentrations from:'
         write (nu_diag,*) trim(iron_file)
         !cn call ice_open_nc(iron_file,fid)
         open(fid, file = iron_file,form='unformatted')
-
         !cn fieldname='pFe'
         !cn Not sure what this comment means, do we not need an implied do within the read?
         ! Currently only first fep value is read
         !cn call ice_read_nc(fid,1,fieldname,fep1,diag) 
         read(fid,fep1(:,:)) 
         where ( fep1(:,:) > 1.e20) fep1(:,:) = p1  
-
         close(fid)  
-
       endif
 #endif
       end subroutine init_bgc_data
