@@ -1725,12 +1725,12 @@
                            PP_net, hbri,dhbr_bot, dhbr_top, Zoo,&
                            fbio_snoice, fbio_atmice, ocean_bio, &
                            first_ice, fswpenln, bphi, bTiz, ice_bio_net,  &
-                           snow_bio_net, totalChla, fswthrun, Rayleigh_criteria, &
+                           snow_bio_net, totalChla, fswthrun, &
                            bgrid, igrid, icgrid, cgrid,  &
                            nblyr, nilyr, nslyr, n_algae, n_zaero, ncat, &
                            n_doc, n_dic,  n_don, n_fed, n_fep,  &
                            meltbn, melttn, congeln, snoicen, &
-                           sst, sss, Tf, fsnow, meltsn, & !hmix, &
+                           sst, sss, Tf, fsnow, meltsn, &
                            hin_old, flux_bio, flux_bio_atm, &
                            aicen_init, vicen_init, aicen, vicen, vsnon, &
                            aice0, trcrn, vsnon_init, skl_bgc, &
@@ -1800,9 +1800,6 @@
 
       real (kind=dbl_kind), intent(inout), optional :: &
          zsal_tot           ! Total ice salinity in per grid cell (g/m^2) (deprecated)
-
-      logical (kind=log_kind), intent(inout), optional :: &
-         Rayleigh_criteria    ! .true. means Ra_c was reached (deprecated)
 
       real (kind=dbl_kind), dimension (:,:), intent(in) :: &
          fswpenln        ! visible SW entering ice layers (W m-2)
@@ -1902,9 +1899,6 @@
                do mm = 1,nbtrcr
                   trcrn(nt_zbgc_frac-1+mm,n) = zbgc_frac_init(mm)
                enddo
-
-            if (n == 1) Rayleigh_criteria = .false.
-            !endif
          endif
 
          if (aicen(n) > puny) then
@@ -2218,7 +2212,7 @@
        doc(2) = 9.0_dbl_kind  ! lipids
        doc(3) = c1 !
        do k = 1, max_dic
-            dic(k) = c1
+            dic(k) = 1950.0_dbl_kind ! 1950-2260 mmol C/m3 (Tynan et al. 2015)
        enddo
        do k = 1, max_don
             don(k) = 12.9_dbl_kind

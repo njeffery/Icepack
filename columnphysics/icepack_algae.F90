@@ -370,8 +370,12 @@
                call icepack_warnings_add(warnstr)
                write(warnstr,*) subname,  Tot_BGC_i(mm) + flux_bio_atm(mm)*dt - flux_bion(mm)*dt
                call icepack_warnings_add(warnstr)
-               !l_stop = .true.
-               !stop_label = "carbon conservation in ice_algae.F90"
+               write(warnstr,*) subname, 'hbri,hbri_old'
+               call icepack_warnings_add(warnstr)
+               write(warnstr,*) subname, hbri,hbri_old
+               call icepack_warnings_add(warnstr)
+               call icepack_warnings_setabort(.true.,__FILE__,__LINE__)
+               call icepack_warnings_add(subname//" zbio: Carbon conservation failure after z_biogeochemistry")
             enddo
          endif
       endif
@@ -1023,7 +1027,7 @@
          Nquota_I = 0.0408_dbl_kind, & ! Intercept in N quota to cell volume fit
          f_s = p1, & ! fracton of sites available for saturation
          f_a = 0.3_dbl_kind, & !c1 , &  ! fraction of collector available for attachment
-         f_v = 0.7854  ! fraction of algal coverage on area availabel for attachment
+         f_v = 0.7854_dbl_kind  ! fraction of algal coverage on area availabel for attachment
                        ! 4(pi r^2)/(4r)^2  [Johnson et al, 1995, water res. research]
 
       integer, parameter :: &
@@ -1221,14 +1225,16 @@
          if (hbri_old > thinS .and. hbri > thinS) then
             do k = 1,nblyr+1
                initcons_mobile(k) = in_init_cons(k,mm)*trcrn(nt_zbgc_frac+mm-1)
-               initcons_stationary(k) = mobile(mm)*(in_init_cons(k,mm)-initcons_mobile(k))
+               initcons_stationary(k) = max(c0,in_init_cons(k,mm)-initcons_mobile(k))
+               ! Allow release of Nitrate/silicate to mobile phase, but not adsorption
                dmobile(k) = mobile(mm)*(initcons_mobile(k)*(exp_ret(mm)-c1) + &
-                                    initcons_stationary(k)*(c1-exp_rel(mm)))
+                    initcons_stationary(k)*(c1-exp_rel(mm))) + &
+                    (1-mobile(mm))*initcons_stationary(k)*(c1-exp_rel(mm))
                initcons_mobile(k) = max(c0,initcons_mobile(k) + dmobile(k))
                initcons_stationary(k) = max(c0,initcons_stationary(k) - dmobile(k))
                if (initcons_stationary(k)/hbri_old > Sat_conc) then
                   initcons_mobile(k) = initcons_mobile(k) + initcons_stationary(k) - Sat_conc*hbri_old
-                   initcons_stationary(k) = Sat_conc*hbri_old
+                  initcons_stationary(k) = Sat_conc*hbri_old
                endif
 
                Diff(k) = iDin(k)
@@ -1409,14 +1415,23 @@
          do k = 1,nblyr+1                  ! back to bulk quantity
             bio_tmp = (biomat_brine(k,m) + react(k,m))*iphin_N(k)
 
-            if (tr_bgc_C .and. m .eq. nlt_bgc_DIC(1) .and. bio_tmp < -puny) then  ! satisfy DIC demands from ocean                write(warnstr,*) subname, 'DIC demand from ocean'
+            if (tr_bgc_C .and. m .eq. nlt_bgc_DIC(1) .and. bio_tmp < -puny) then  ! satisfy DIC demands from ocean
+                write(warnstr,*) subname, 'DIC demand from ocean'
                 call icepack_warnings_add(warnstr)
-                write(warnstr,*) subname, 'm, nlt_bgc_DIC(1), bio_tmp, react(k,m):'
+                write(warnstr,*) subname, 'm, k, nlt_bgc_DIC(1), bio_tmp, react(k,m):'
                 call icepack_warnings_add(warnstr)
-                write(warnstr,*) subname, m, nlt_bgc_DIC(1), bio_tmp, react(k,m)
+                write(warnstr,*) subname, m, k, nlt_bgc_DIC(1), bio_tmp, react(k,m)
                 call icepack_warnings_add(warnstr)
-                flux_bio(m) = flux_bio(m) + bio_tmp*dz(k)*hbri_old/dt
+                write(warnstr,*) subname, 'flux_bio(m) Initial, hbri_old, hbri, dz(k)'
+                call icepack_warnings_add(warnstr)
+                write(warnstr,*) subname, flux_bio(m), hbri_old, hbri, dz(k)
+                call icepack_warnings_add(warnstr)
+                flux_bio(m) = flux_bio(m) +  bio_tmp*dz(k)*hbri/dt
                 bio_tmp = c0
+                write(warnstr,*) subname, 'flux_bio(m) Final'
+                call icepack_warnings_add(warnstr)
+                write(warnstr,*) subname, flux_bio(m)
+                call icepack_warnings_add(warnstr)
             end if
             if (m .eq. nlt_bgc_Nit) then
                initcons_mobile(k) = max(c0,(biomat_brine(k,m)-nitrification(k) + &
@@ -1444,7 +1459,7 @@
                 call icepack_warnings_add(subname//' C in algal_dyn not conserved')
                 call icepack_warnings_setabort(.true.,__FILE__,__LINE__)
             elseif (abs(bio_tmp) < puny) then
-               flux_bio(m) = flux_bio(m) + bio_tmp*dz(k)*hbri_old/dt
+               flux_bio(m) = flux_bio(m) + bio_tmp*dz(k)*hbri/dt
                bio_tmp = c0
             elseif (bio_tmp > large_bgc) then
                 write(warnstr,*) subname, 'very large bgc value'
@@ -1990,6 +2005,7 @@
          Fe_r_p  = U_Fe (k) * dt
          Fed_tot_r = Fed_tot_r + Fe_r_p
          exude_C = exude_C + k_exude(k)* R_C2N(k)*Nin(k) / secday
+         DIC_r(1) = DIC_r(1) + (c1-fr_resp)*grow_N(k) * R_C2N(k) * dt
       enddo
 
       !--------------------------------------------------------------------
@@ -2054,7 +2070,7 @@
          DOC_r(n) = k_bac(n)/secday * DOCin(n) * dt
 !         DOC_s(n) = f_doc(n)*(fr_graze_s *graze_C + mort_C)*dt &
 !                  + f_exude(n)*exude_C
-         DOC_s(n) =  f_doc(n) * (graze_C*dt + mort_C*dt - DON_s(1) * R_C2N_DON(1))
+         DOC_s(n) = f_doc(n) * (graze_C*dt + mort_C*dt - DON_s(1) * R_C2N_DON(1))
          DIC_s(1) = DIC_s(1) + DOC_r(n)
       enddo
 
