@@ -92,10 +92,10 @@
                              ntrcr,       trcr_depend, &
                              trcr_base,   n_trcr_strata,&
                              nt_strata,                &
-                             aicen_init,  vicen_init,  & 
-                             aicen,       trcrn,       & 
-                             vicen,       vsnon,       & 
-                             aice,        aice0,       & 
+                             aicen_init,  vicen_init,  &
+                             aicen,       trcrn,       &
+                             vicen,       vsnon,       &
+                             aice,        aice0,       &
                              fpond,       Tf           )
 
       integer (kind=int_kind), intent(in) :: &
@@ -964,6 +964,7 @@
          bin1_arealoss, tmp !
 
       logical (kind=log_kind) :: &
+         fsd_wlat, & ! .true. if wlat present and wlat > puny
          flag        ! .true. if there could be lateral melting
 
       real (kind=dbl_kind), dimension (ncat) :: &
@@ -1024,7 +1025,14 @@
          f_flx       = c0
       end if
 
-      if (tr_fsd .and. wlat > puny) then
+      ! fsd_wlat == if (tr_fsd .and. wlat > puny)
+      ! need fsd_wlat because wlat is optional
+      fsd_wlat = .false.
+      if (tr_fsd .and. present(wlat)) then
+         if (wlat > puny) fsd_wlat = .true.
+      endif
+
+      if (fsd_wlat) then
          flag = .true.
 
          ! for FSD rside and fside not yet computed correctly, redo here
@@ -1627,8 +1635,8 @@
             vi0tmp = fnew*dt / (rhoi*Lfresh) ! ocn/cpl assumes frazil volume is pure, fresh ice
             dfresh = -rhoi*(vi0new - vi0tmp)/dt
             frazil_diag = frazil - vi0tmp
-!        else 
-!           do nothing - other correction options could be implemented in the future             
+!        else
+!           do nothing - other correction options could be implemented in the future
          endif
 
          if (saltflux_option == 'prognostic') then
@@ -1637,7 +1645,7 @@
             dfsalt = ice_ref_salinity*p001*dfresh
          endif
          fresh  = fresh + dfresh
-         fsalt  = fsalt + dfsalt      
+         fsalt  = fsalt + dfsalt
       endif
 
       !-----------------------------------------------------------------
@@ -2293,7 +2301,6 @@
       ! thickness, and the other half decreases the area).
       !-----------------------------------------------------------------
 
-!echmod: test this
       if (ncat==1) &
          call reduce_area (hin_max   (0),                &
                            aicen     (1), vicen     (1), &
