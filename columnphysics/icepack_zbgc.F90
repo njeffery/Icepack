@@ -1182,13 +1182,17 @@
                           PP_net,                ice_bio_net (1:nbtrcr), &
                           snow_bio_net(1:nbtrcr),grow_net,               &
                           totalChla,                                     &
-                          flux_bion_n,           iSin,                   &
+                          flux_bion_n(1:nbtrcr), iSin,                   &
                           bioPorosityIceCell(:), bioSalinityIceCell(:),  &
                           bioTemperatureIceCell(:)                       )
 
                if (icepack_warnings_aborted(subname)) return
 
-               if (present(flux_bion)) flux_bion(:,n) = flux_bion_n(:)
+               if (present(flux_bion)) then
+                  do mm = 1, nbtrcr
+                     flux_bion(mm,n) = flux_bion_n(mm)
+                  enddo
+               endif
 
             elseif (skl_bgc) then
 
